@@ -1,0 +1,54 @@
+@url = http://localhost:3000
+
+### 1. Cadastrar morador
+POST {{url}}/moradores/cadastro
+Content-Type: application/json
+
+{ "nome": "Maria Teste", "email": "maria@teste.com", "senha": "123456" }
+
+### 2. Login do morador
+# @name loginMorador
+POST {{url}}/moradores/login
+Content-Type: application/json
+
+{ "email": "maria@teste.com", "senha": "123456" }
+
+### 3. Categorias
+GET {{url}}/categorias
+
+### 4. Municípios
+GET {{url}}/municipios
+
+### 5. Registrar ocorrência (confira os ids nas listas acima)
+POST {{url}}/ocorrencias
+Authorization: Bearer {{loginMorador.response.body.$.token}}
+Content-Type: application/json
+
+{ "titulo": "Buraco na rua", "descricao": "Buraco grande", "endereco": "Rua Teste, 100", "latitude": "-23.501500", "longitude": "-47.458000", "categoria_id": "1", "municipio_id": "1" }
+
+### 6. Listar ocorrências
+GET {{url}}/ocorrencias
+
+### 7. Cadastrar prefeitura
+POST {{url}}/prefeituras/cadastro
+Content-Type: application/json
+
+{ "nome": "Prefeitura de Sorocaba", "email": "prefeitura@teste.com", "senha": "123456", "municipio_id": 1 }
+
+### 8. Login da prefeitura
+# @name loginPref
+POST {{url}}/prefeituras/login
+Content-Type: application/json
+
+{ "email": "prefeitura@teste.com", "senha": "123456" }
+
+### 9. Mudar o status da ocorrência 1
+PATCH {{url}}/ocorrencias/1/status
+Authorization: Bearer {{loginPref.response.body.$.token}}
+Content-Type: application/json
+
+{ "status": "em_andamento", "comentario": "Equipe a caminho" }
+
+### 10. Resumo do painel
+GET {{url}}/dashboard/resumo
+Authorization: Bearer {{loginPref.response.body.$.token}}
