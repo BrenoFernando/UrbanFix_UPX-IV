@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang='pt-BR'>
+<head>
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <title>Nova ocorrência - UrbanFix</title>
+  <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'>
+  <link rel='stylesheet' href='/css/style.css'>
+</head>
+<body>
+<nav id='menu'></nav>
+<main>
+  <div class='card'>
+    <h2>Registrar ocorrência</h2>
+    <input id='titulo' placeholder='Título (ex.: Buraco na rua)'>
+    <select id='categoria'></select>
+    <select id='municipio'></select>
+    <textarea id='descricao' rows='3' placeholder='Descreva o problema'></textarea>
+    <input id='endereco' placeholder='Endereço (rua e número)'>
+    <p>Clique no mapa para marcar o local exato:</p>
+    <div id='mapa'></div>
+    <label>Fotos (até 4):</label>
+    <input id='fotos' type='file' accept='image/*' multiple>
+    <button class='btn' id='btnEnviar'>Enviar ocorrência</button>
+    <p id='msg' class='erro'></p>
+  </div>
+</main>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'></script>
+<script src='/js/api.js'></script>
+<script>
+  menu();
+  const s = getSessao();
+  if (!s || s.usuario.tipo !== 'morador') location.href = '/login.html';
+
+  const mapa = L.map('mapa').setView([-23.50, -47.46], 13);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(mapa);
+  let pino = null, lat = null, lng = null;
+  mapa.on('click', (e) => {
+    lat = e.latlng.lat;
+    lng = e.latlng.lng;
+    if (pino) pino.setLatLng(e.latlng); else pino = L.marker(e.latlng).addTo(mapa);
+  });
+
+  api('/categorias').then((cs) => cs.forEach((c) => $('categoria').add(new Option(c.nome, c.id))));
+  api('/municipios').then((ms) => ms.forEach((m) => $('municipio').add(new Option(m.nome + ' - ' + m.uf, m.id))));
+
+  $('btnEnviar').onclick = async () => {
+    if (lat === null) { $('msg').textContent = 'Clique no mapa para marcar o local.'; return; }
+    const f = new FormData();
+    f.append('titulo', $('titulo').value);
+    f.append('descricao', $('descricao').value);
+    f.append('endereco', $('endereco').value);
+    f.append('categoria_id', $('categoria').value);
+    f.append('municipio_id', $('municipio').value);
+    f.append('latitude', lat.toFixed(6));
+    f.append('longitude', lng.toFixed(6));
+    for (const arq of $('fotos').files) f.append('fotos', arq);
+    try {
+      await api('/ocorrencias', { method: 'POST', body: f });
+      location.href = '/minhas.html';
+    } catch (e) {
+      $('msg').textContent = e.message;
+    }
+  };
+</script>
+</body>
+</html>

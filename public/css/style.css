@@ -1,0 +1,16 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; background: #f4f6f8; color: #222; }
+nav { background: #1b5e8a; padding: 12px 20px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+nav a, nav button { color: #fff; text-decoration: none; background: none; border: 0; cursor: pointer; font-size: 15px; }
+nav .logo { font-weight: bold; font-size: 18px; margin-right: auto; }
+main { max-width: 960px; margin: 20px auto; padding: 0 16px; }
+.card { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0, 0, 0, .1); }
+input, select, textarea { width: 100%; padding: 10px; margin: 6px 0 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; font-family: inherit; }
+button.btn { width: 100%; padding: 10px; margin-top: 6px; background: #1b5e8a; color: #fff; border: 0; border-radius: 6px; font-size: 15px; cursor: pointer; }
+button.sec { background: #888; }
+#mapa { height: 420px; border-radius: 8px; margin-bottom: 14px; }
+.status { padding: 2px 8px; border-radius: 10px; font-size: 12px; background: #ddd; }
+.erro { color: #b00020; }
+.ok { color: #1b7a3b; }
+.linha { display: flex; gap: 10px; flex-wrap: wrap; }
+.linha > * { flex: 1; min-width: 140px; }

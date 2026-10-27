@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang='pt-BR'>
+<head>
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <title>Painel - UrbanFix</title>
+  <link rel='stylesheet' href='/css/style.css'>
+</head>
+<body>
+<nav id='menu'></nav>
+<main>
+  <h2>Painel da prefeitura</h2>
+  <div id='resumo' class='linha'></div>
+  <p id='porCategoria'></p>
+  <h3>Ocorrências do município</h3>
+  <div id='lista'></div>
+</main>
+<script src='/js/api.js'></script>
+<script>
+  menu();
+  const s = getSessao();
+  if (!s || s.usuario.tipo !== 'prefeitura') location.href = '/login.html';
+
+  async function carregar() {
+    const r = await api('/dashboard/resumo');
+    $('resumo').innerHTML = r.porStatus.map((x) =>
+      `<div class='card'><b style='font-size:24px'>${x.total}</b><br>${ROTULOS[x.status]}</div>`
+    ).join('') +
+      `<div class='card'><b style='font-size:24px'>${r.horasMediasResolucao ?? '—'}</b><br>horas médias para resolver</div>`;
+    $('porCategoria').innerHTML = 'Por categoria: ' + r.porCategoria.map((x) => `${esc(x.categoria)}: <b>${x.total}</b>`).join(' · ');
+
+    const lista = await api('/ocorrencias?municipio_id=' + s.usuario.municipio_id);
+    $('lista').innerHTML = lista.map((o) =>
+      `<div class='card'><b>${esc(o.titulo)}</b> <span class='status'>${ROTULOS[o.status]}</span><br>${esc(o.categoria)} — ${esc(o.endereco)}
+        <select id='st${o.id}'>
+          <option value='em_analise'>Em análise</option>
+          <option value='em_andamento'>Em andamento</option>
+          <option value='resolvida'>Resolvida</option>
+        </select>
+        <input id='co${o.id}' placeholder='Comentário (opcional)'>
+        <button class='btn' onclick='atualizar(${o.id})'>Atualizar status</button></div>`
+    ).join('') || '<p>Nenhuma ocorrência no município.</p>';
+  }
+
+  async function atualizar(id) {
+    try {
+      await api(`/ocorrencias/${id}/status`, {
+        method: 'PATCH',
+        body: { status: $('st' + id).value, comentario: $('co' + id).value },
+      });
+      carregar();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  carregar();
+</script>
+</body>
+</html>

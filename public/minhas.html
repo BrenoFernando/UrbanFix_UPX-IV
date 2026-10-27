@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang='pt-BR'>
+<head>
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <title>Minhas ocorrências - UrbanFix</title>
+  <link rel='stylesheet' href='/css/style.css'>
+</head>
+<body>
+<nav id='menu'></nav>
+<main>
+  <h2>Minhas ocorrências</h2>
+  <div id='lista'></div>
+</main>
+<script src='/js/api.js'></script>
+<script>
+  menu();
+  const s = getSessao();
+  if (!s || s.usuario.tipo !== 'morador') location.href = '/login.html';
+
+  async function carregar() {
+    const dados = await api('/ocorrencias/minhas');
+    $('lista').innerHTML = dados.map((o) =>
+      `<div class='card'><b>${esc(o.titulo)}</b> <span class='status'>${ROTULOS[o.status]}</span><br>${esc(o.categoria)} — ${esc(o.endereco)}` +
+      (['aberta', 'em_analise'].includes(o.status)
+        ? `<button class='btn sec' onclick='cancelar(${o.id})'>Cancelar ocorrência</button>`
+        : '') +
+      `</div>`
+    ).join('') || '<p>Você ainda não registrou ocorrências.</p>';
+  }
+
+  async function cancelar(id) {
+    if (!confirm('Cancelar esta ocorrência?')) return;
+    try {
+      await api(`/ocorrencias/${id}/cancelar`, { method: 'PATCH' });
+      carregar();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  carregar();
+</script>
+</body>
+</html>

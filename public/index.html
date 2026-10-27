@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang='pt-BR'>
+<head>
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <title>UrbanFix</title>
+  <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'>
+  <link rel='stylesheet' href='/css/style.css'>
+</head>
+<body>
+<nav id='menu'></nav>
+<main>
+  <h2>Ocorrências na cidade</h2>
+  <div class='linha'>
+    <select id='fStatus'><option value=''>Todos os status</option></select>
+    <select id='fCategoria'><option value=''>Todas as categorias</option></select>
+  </div>
+  <div id='mapa'></div>
+  <div id='lista'></div>
+</main>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'></script>
+<script src='/js/api.js'></script>
+<script>
+  menu();
+  const mapa = L.map('mapa').setView([-23.50, -47.46], 12);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(mapa);
+  let marcadores = [];
+
+  async function carregar() {
+    const params = new URLSearchParams();
+    if ($('fStatus').value) params.set('status', $('fStatus').value);
+    if ($('fCategoria').value) params.set('categoria_id', $('fCategoria').value);
+    const dados = await api('/ocorrencias?' + params);
+    marcadores.forEach((m) => m.remove());
+    marcadores = dados.map((o) =>
+      L.marker([Number(o.latitude), Number(o.longitude)]).addTo(mapa).bindPopup(
+        `<b>${esc(o.titulo)}</b><br>${esc(o.categoria)}<br>${ROTULOS[o.status]}<br>${esc(o.endereco)}`
+      )
+    );
+    $('lista').innerHTML = dados.map((o) =>
+      `<div class='card'><b>${esc(o.titulo)}</b> <span class='status'>${ROTULOS[o.status]}</span><br>${esc(o.categoria)} — ${esc(o.endereco)}</div>`
+    ).join('') || '<p>Nenhuma ocorrência encontrada.</p>';
+  }
+
+  Object.entries(ROTULOS).forEach(([valor, texto]) => $('fStatus').add(new Option(texto, valor)));
+  api('/categorias').then((cs) => cs.forEach((c) => $('fCategoria').add(new Option(c.nome, c.id))));
+  $('fStatus').onchange = carregar;
+  $('fCategoria').onchange = carregar;
+  carregar();
+</script>
+</body>
+</html>
