@@ -5,6 +5,12 @@
   <meta name='viewport' content='width=device-width, initial-scale=1'>
   <title>Painel - UrbanFix</title>
   <link rel='stylesheet' href='/css/style.css'>
+  <style>
+    .prio { display: inline-block; margin-left: 6px; padding: 1px 10px; border-radius: 999px; font-size: 14px; font-weight: 600; background: #2a343b; color: #a8b4bb; }
+    .prio.alta  { background: #4a1d19; color: #ffb4a8; }
+    .prio.media { background: #4a3a0a; color: #ffd666; }
+    .prio.baixa { background: #123d26; color: #9be3b7; }
+  </style>
 </head>
 <body>
 <nav id='menu'></nav>
@@ -13,6 +19,7 @@
   <div id='resumo' class='linha'></div>
   <p id='porCategoria'></p>
   <h3>Ocorrências do município</h3>
+  <p>As de prioridade mais alta aparecem primeiro.</p>
   <div id='lista'></div>
 </main>
 <script src='/js/api.js'></script>
@@ -20,7 +27,24 @@
   menu();
   const s = getSessao();
   if (!s || s.usuario.tipo !== 'prefeitura') location.href = '/login.html';
-
+ 
+  const PRIO = { baixa: 'Baixa', media: 'Média', alta: 'Alta' };
+  const PESO = { alta: 3, media: 2, baixa: 1 };
+ 
+  function controles(o) {
+    if (o.status === 'cancelada') return `<p>Ocorrência cancelada pelo morador.</p>`;
+    const opcoesStatus = ['em_analise', 'em_andamento', 'resolvida'].map((st) =>
+      `<option value='${st}' ${o.status === st ? 'selected' : ''}>${ROTULOS[st]}</option>`
+    ).join('');
+    const opcoesPrio = ['baixa', 'media', 'alta'].map((p) =>
+      `<option value='${p}' ${o.prioridade === p ? 'selected' : ''}>Prioridade ${PRIO[p]}</option>`
+    ).join('');
+    return `<select id='st${o.id}' aria-label='Status'>${opcoesStatus}</select>
+      <select id='pr${o.id}' aria-label='Prioridade'>${opcoesPrio}</select>
+      <input id='co${o.id}' placeholder='Comentário (opcional)'>
+      <button class='btn' onclick='atualizar(${o.id})'>Atualizar</button>`;
+  }
+ 
   async function carregar() {
     const r = await api('/dashboard/resumo');
     $('resumo').innerHTML = r.porStatus.map((x) =>
@@ -28,33 +52,30 @@
     ).join('') +
       `<div class='card'><b style='font-size:24px'>${r.horasMediasResolucao ?? '—'}</b><br>horas médias para resolver</div>`;
     $('porCategoria').innerHTML = 'Por categoria: ' + r.porCategoria.map((x) => `${esc(x.categoria)}: <b>${x.total}</b>`).join(' · ');
-
+ 
     const lista = await api('/ocorrencias?municipio_id=' + s.usuario.municipio_id);
+    lista.sort((a, b) => PESO[b.prioridade] - PESO[a.prioridade]);
     $('lista').innerHTML = lista.map((o) =>
-      `<div class='card'><b>${esc(o.titulo)}</b> <span class='status'>${ROTULOS[o.status]}</span><br>${esc(o.categoria)} — ${esc(o.endereco)}
-        <select id='st${o.id}'>
-          <option value='em_analise'>Em análise</option>
-          <option value='em_andamento'>Em andamento</option>
-          <option value='resolvida'>Resolvida</option>
-        </select>
-        <input id='co${o.id}' placeholder='Comentário (opcional)'>
-        <button class='btn' onclick='atualizar(${o.id})'>Atualizar status</button></div>`
+      `<div class='card'><b><a href='/detalhe.html?id=${o.id}'>${esc(o.titulo)}</a></b> <span class='status ${o.status}'>${ROTULOS[o.status]}</span><span class='prio ${o.prioridade}'>Prioridade ${PRIO[o.prioridade]}</span><br>${esc(o.categoria)} — ${esc(o.endereco)}
+        ${fotosHtml(o.fotos)}
+        ${controles(o)}</div>`
     ).join('') || '<p>Nenhuma ocorrência no município.</p>';
   }
-
+ 
   async function atualizar(id) {
     try {
       await api(`/ocorrencias/${id}/status`, {
         method: 'PATCH',
-        body: { status: $('st' + id).value, comentario: $('co' + id).value },
+        body: { status: $('st' + id).value, prioridade: $('pr' + id).value, comentario: $('co' + id).value },
       });
       carregar();
     } catch (e) {
       alert(e.message);
     }
   }
-
+ 
   carregar();
 </script>
 </body>
 </html>
+ 

@@ -1,16 +1,248 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;600&family=Barlow+Semi+Condensed:wght@600;800&display=swap');
+ 
+:root {
+  color-scheme: dark;
+  --fundo: #11161a;
+  --asfalto: #0a0e11;
+  --papel: #1b232a;
+  --amarelo: #ffc72c;
+  --azul: #1f6fb0;
+  --azul-hover: #2678bd;
+  --texto: #e9eef0;
+  --texto-suave: #a3afb7;
+  --linha: #303b44;
+  --campo: #131a20;
+  --borda-campo: #46535d;
+  --erro: #ff8a80;
+  --ok: #7fdc9f;
+ 
+  --s-aberta: #e5594b;
+  --s-em_analise: #f0b429;
+  --s-em_andamento: #4aa3e8;
+  --s-resolvida: #3fb26b;
+  --s-cancelada: #7d8a92;
+ 
+  --fonte-titulo: 'Barlow Semi Condensed', 'Arial Narrow', Arial, sans-serif;
+  --fonte-texto: 'Barlow', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+}
+ 
 * { box-sizing: border-box; }
-body { margin: 0; font-family: Arial, sans-serif; background: #f4f6f8; color: #222; }
-nav { background: #1b5e8a; padding: 12px 20px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
-nav a, nav button { color: #fff; text-decoration: none; background: none; border: 0; cursor: pointer; font-size: 15px; }
-nav .logo { font-weight: bold; font-size: 18px; margin-right: auto; }
-main { max-width: 960px; margin: 20px auto; padding: 0 16px; }
-.card { background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0, 0, 0, .1); }
-input, select, textarea { width: 100%; padding: 10px; margin: 6px 0 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; font-family: inherit; }
-button.btn { width: 100%; padding: 10px; margin-top: 6px; background: #1b5e8a; color: #fff; border: 0; border-radius: 6px; font-size: 15px; cursor: pointer; }
-button.sec { background: #888; }
-#mapa { height: 420px; border-radius: 8px; margin-bottom: 14px; }
-.status { padding: 2px 8px; border-radius: 10px; font-size: 12px; background: #ddd; }
-.erro { color: #b00020; }
-.ok { color: #1b7a3b; }
-.linha { display: flex; gap: 10px; flex-wrap: wrap; }
+ 
+body {
+  margin: 0;
+  font-family: var(--fonte-texto);
+  font-size: 17px;
+  line-height: 1.5;
+  background: var(--fundo);
+  color: var(--texto);
+}
+ 
+h2, h3 {
+  font-family: var(--fonte-titulo);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  margin: 0 0 16px;
+  color: #fff;
+}
+h2 { font-size: 30px; }
+h3 { font-size: 22px; margin-top: 28px; }
+ 
+a { color: #8cc4f0; }
+ 
+/* ---------- Menu: asfalto com faixa amarela tracejada ---------- */
+nav {
+  background-color: var(--asfalto);
+  background-image: repeating-linear-gradient(90deg, var(--amarelo) 0 26px, transparent 26px 46px);
+  background-size: 100% 4px;
+  background-position: left bottom;
+  background-repeat: no-repeat;
+  padding: 14px 24px 18px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+nav a,
+nav button {
+  color: #fff;
+  text-decoration: none;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-family: var(--fonte-texto);
+  font-size: 16px;
+  font-weight: 600;
+  transition: background-color 0.15s;
+}
+nav a:hover,
+nav button:hover { background: rgba(255, 255, 255, 0.14); }
+nav button { border-color: rgba(255, 255, 255, 0.4); }
+ 
+nav .logo {
+  display: flex;
+  align-items: center;
+  margin-right: auto;
+  font-family: var(--fonte-titulo);
+  font-weight: 800;
+  font-size: 26px;
+  color: #fff;
+}
+/* pino de mapa feito só com CSS */
+nav .logo::before {
+  content: '';
+  width: 15px;
+  height: 15px;
+  margin-right: 10px;
+  background: var(--amarelo);
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+}
+ 
+/* ---------- Conteúdo ---------- */
+main {
+  max-width: 960px;
+  margin: 28px auto 48px;
+  padding: 0 16px;
+}
+main:has(#btnEntrar),
+main:has(#btnCadastrar) { max-width: 460px; }
+main:has(#btnEnviar) { max-width: 720px; }
+ 
+.card {
+  background: var(--papel);
+  border: 1px solid var(--linha);
+  border-radius: 6px;
+  padding: 16px 18px;
+  margin-bottom: 12px;
+}
+ 
+/* Ocorrências: a cor da borda esquerda mostra o status.
+   Precisa de class='status ${o.status}' no span. */
+#lista .card { border-left: 6px solid var(--s-cancelada); }
+#lista .card:has(.status.aberta)       { border-left-color: var(--s-aberta); }
+#lista .card:has(.status.em_analise)   { border-left-color: var(--s-em_analise); }
+#lista .card:has(.status.em_andamento) { border-left-color: var(--s-em_andamento); }
+#lista .card:has(.status.resolvida)    { border-left-color: var(--s-resolvida); }
+#lista .card:has(.status.cancelada)    { border-left-color: var(--s-cancelada); }
+ 
+/* Números do painel */
+#resumo .card {
+  margin-bottom: 0;
+  border-top: 4px solid var(--amarelo);
+  color: var(--texto-suave);
+}
+#resumo .card b { font-family: var(--fonte-titulo); color: #fff; }
+ 
+/* ---------- Formulários ---------- */
+label { display: block; font-weight: 600; margin-top: 4px; }
+ 
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 11px 12px;
+  margin: 6px 0 12px;
+  border: 1px solid var(--borda-campo);
+  border-radius: 4px;
+  background: var(--campo);
+  color: var(--texto);
+  font-size: 16px; /* 16px evita o zoom automático no iPhone */
+  font-family: inherit;
+}
+input::placeholder,
+textarea::placeholder { color: #8795a0; }
+option { background: var(--campo); color: var(--texto); }
+ 
+:focus-visible {
+  outline: 3px solid var(--amarelo);
+  outline-offset: 2px;
+}
+ 
+button.btn {
+  width: 100%;
+  padding: 12px;
+  margin-top: 6px;
+  background: var(--azul);
+  color: #fff;
+  border: 1px solid var(--azul);
+  border-radius: 4px;
+  font-family: var(--fonte-texto);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+button.btn:hover { background: var(--azul-hover); }
+ 
+/* botão secundário (ex.: Cancelar ocorrência): fica depois de .btn de propósito */
+button.sec {
+  background: transparent;
+  color: var(--texto);
+  border-color: #6f7f89;
+}
+button.sec:hover { background: rgba(255, 255, 255, 0.08); }
+ 
+/* dentro das listas, o botão não precisa ocupar a linha toda */
+#lista .btn { width: auto; padding: 9px 18px; margin-top: 10px; }
+ 
+/* ---------- Mapa (Leaflet) ---------- */
+#mapa {
+  height: 420px;
+  border: 1px solid var(--linha);
+  border-radius: 6px;
+  margin-bottom: 16px;
+  isolation: isolate;
+}
+/* escurece só o mapa de fundo; pinos e popups continuam normais.
+   Para voltar ao mapa claro, apague esta regra. */
+.leaflet-tile-pane { filter: invert(100%) hue-rotate(180deg) brightness(0.95) contrast(0.9); }
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip { background: #fff; color: #1f272e; }
+.leaflet-popup-content-wrapper { border-radius: 6px; }
+.leaflet-popup-content { font-family: var(--fonte-texto); line-height: 1.4; }
+ 
+/* ---------- Status e mensagens ---------- */
+.status {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 10px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  background: #2a343b;
+  color: #a8b4bb;
+}
+.status.aberta       { background: #4a1d19; color: #ffb4a8; }
+.status.em_analise   { background: #4a3a0a; color: #ffd666; }
+.status.em_andamento { background: #12365a; color: #a9d3f5; }
+.status.resolvida    { background: #123d26; color: #9be3b7; }
+.status.cancelada    { background: #2a343b; color: #a8b4bb; }
+ 
+.erro { color: var(--erro); }
+.ok { color: var(--ok); }
+#msg, #msg2 { margin: 8px 0 0; min-height: 1.4em; }
+ 
+.linha { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
 .linha > * { flex: 1; min-width: 140px; }
+ 
+/* ---------- Fotos das ocorrências ---------- */
+.fotos { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.fotos img { width: 96px; height: 96px; object-fit: cover; border-radius: 8px; border: 1px solid var(--borda-campo); display: block; }
+.leaflet-popup-content .fotos img { width: 72px; height: 72px; }
+ 
+/* ---------- Celular ---------- */
+@media (max-width: 600px) {
+  nav { padding: 12px 14px 16px; }
+  nav .logo { width: 100%; margin-right: 0; }
+  main { margin-top: 20px; }
+  h2 { font-size: 26px; }
+  #mapa { height: 320px; }
+}
+ 
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
+ 

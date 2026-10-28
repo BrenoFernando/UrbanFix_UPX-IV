@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang='pt-BR'>
+<head>
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <title>Detalhes da ocorrência - UrbanFix</title>
+  <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'>
+  <link rel='stylesheet' href='/css/style.css'>
+  <style>
+    .prio { display: inline-block; margin-left: 6px; padding: 1px 10px; border-radius: 999px; font-size: 14px; font-weight: 600; background: #2a343b; color: #a8b4bb; }
+    .prio.alta  { background: #4a1d19; color: #ffb4a8; }
+    .prio.media { background: #4a3a0a; color: #ffd666; }
+    .prio.baixa { background: #123d26; color: #9be3b7; }
+    .fotos.grandes img { width: 220px; height: 220px; }
+    small { opacity: .75; }
+  </style>
+</head>
+<body>
+<nav id='menu'></nav>
+<main>
+  <p><a href='/'>← Voltar para o mapa</a></p>
+  <div class='card' id='box'>Carregando...</div>
+  <h3>Local</h3>
+  <div id='mapa'></div>
+  <h3>Histórico</h3>
+  <div id='historico'></div>
+</main>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'></script>
+<script src='/js/api.js'></script>
+<script>
+  menu();
+  const id = new URLSearchParams(location.search).get('id');
+  const PRIO = { baixa: 'Baixa', media: 'Média', alta: 'Alta' };
+ 
+  function data(d) {
+    return new Date(d).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+  }
+ 
+  async function carregar() {
+    if (!id) { $('box').textContent = 'Nenhuma ocorrência foi informada.'; return; }
+    try {
+      const o = await api('/ocorrencias/' + encodeURIComponent(id));
+      $('box').innerHTML =
+        `<h2>${esc(o.titulo)}</h2>
+         <span class='status ${o.status}'>${ROTULOS[o.status]}</span><span class='prio ${o.prioridade}'>Prioridade ${PRIO[o.prioridade]}</span>
+         <p>${esc(o.categoria)} — ${esc(o.endereco)}</p>
+         <p>${esc(o.descricao || 'Sem descrição.')}</p>
+         <p><small>Registrada por ${esc(o.morador)} em ${data(o.criado_em)}</small></p>
+         ${fotosHtml(o.fotos)}`;
+      const fotos = $('box').querySelector('.fotos');
+      if (fotos) fotos.classList.add('grandes');
+ 
+      const ponto = [Number(o.latitude), Number(o.longitude)];
+      const mapa = L.map('mapa').setView(ponto, 16);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(mapa);
+      L.marker(ponto).addTo(mapa);
+ 
+      $('historico').innerHTML = o.historico.map((h) =>
+        `<div class='card'><b>${h.status_anterior ? ROTULOS[h.status_anterior] + ' → ' : ''}${ROTULOS[h.status_novo]}</b>
+         <small>${data(h.criado_em)}</small>${h.comentario ? `<p>${esc(h.comentario)}</p>` : ''}</div>`
+      ).join('') || '<p>Sem histórico.</p>';
+    } catch (e) {
+      $('box').textContent = e.message;
+    }
+  }
+ 
+  carregar();
+</script>
+</body>
+</html>
+ 

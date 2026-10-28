@@ -17,18 +17,52 @@
   menu();
   const s = getSessao();
   if (!s || s.usuario.tipo !== 'morador') location.href = '/login.html';
-
+ 
+  let dados = [];
+  let categorias = [];
+ 
   async function carregar() {
-    const dados = await api('/ocorrencias/minhas');
+    dados = await api('/ocorrencias/minhas');
     $('lista').innerHTML = dados.map((o) =>
-      `<div class='card'><b>${esc(o.titulo)}</b> <span class='status'>${ROTULOS[o.status]}</span><br>${esc(o.categoria)} — ${esc(o.endereco)}` +
+      `<div class='card' id='card${o.id}'><b><a href='/detalhe.html?id=${o.id}'>${esc(o.titulo)}</a></b> <span class='status ${o.status}'>${ROTULOS[o.status]}</span><br>${esc(o.categoria)} — ${esc(o.endereco)}` +
+      fotosHtml(o.fotos) +
+      (o.status === 'aberta' ? `<button class='btn' style='margin-right:8px' onclick='editar(${o.id})'>Editar</button>` : '') +
       (['aberta', 'em_analise'].includes(o.status)
         ? `<button class='btn sec' onclick='cancelar(${o.id})'>Cancelar ocorrência</button>`
         : '') +
       `</div>`
     ).join('') || '<p>Você ainda não registrou ocorrências.</p>';
   }
-
+ 
+  // Troca o cartão por um formulário de edição
+  function editar(id) {
+    const o = dados.find((x) => x.id === id);
+    $('card' + id).innerHTML =
+      `<label>Título</label><input id='eT'>
+       <label>Categoria</label><select id='eC'></select>
+       <label>Endereço</label><input id='eE'>
+       <label>Descrição</label><textarea id='eD' rows='3'></textarea>
+       <button class='btn' style='margin-right:8px' onclick='salvar(${id})'>Salvar</button>
+       <button class='btn sec' onclick='carregar()'>Voltar</button>`;
+    categorias.forEach((c) => $('eC').add(new Option(c.nome, c.id)));
+    $('eT').value = o.titulo;
+    $('eC').value = o.categoria_id;
+    $('eE').value = o.endereco;
+    $('eD').value = o.descricao || '';
+  }
+ 
+  async function salvar(id) {
+    try {
+      await api(`/ocorrencias/${id}`, {
+        method: 'PUT',
+        body: { titulo: $('eT').value, categoria_id: $('eC').value, endereco: $('eE').value, descricao: $('eD').value },
+      });
+      carregar();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+ 
   async function cancelar(id) {
     if (!confirm('Cancelar esta ocorrência?')) return;
     try {
@@ -38,8 +72,11 @@
       alert(e.message);
     }
   }
-
+ 
+  api('/categorias').then((cs) => { categorias = cs; });
   carregar();
 </script>
 </body>
 </html>
+ 
+ 

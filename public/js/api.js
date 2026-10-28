@@ -51,3 +51,10 @@ function menu() {
     : `<a href='/login.html'>Entrar</a>`;
   $('menu').innerHTML = html;
 }
+
+function fotosHtml(fotos) {
+  if (!fotos || fotos.length === 0) return '';
+  return `<div class='fotos'>` + fotos.map((u) =>
+    `<a href='${u}' target='_blank'><img src='${u}' alt='Foto da ocorrência'></a>`
+  ).join('') + `</div>`;
+}

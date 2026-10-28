@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang='pt-BR'>
+<head>
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <title>Cadastro - UrbanFix</title>
+  <link rel='stylesheet' href='/css/style.css'>
+  <style>[hidden] { display: none !important; }</style>
+</head>
+<body>
+<nav id='menu'></nav>
+<main>
+  <div class='card'>
+    <h2>Cadastro</h2>
+    <select id='tipo' aria-label='Tipo de conta'>
+      <option value='moradores'>Sou morador</option>
+      <option value='prefeituras'>Sou da prefeitura</option>
+    </select>
+    <input id='nome' placeholder='Nome' aria-label='Nome'>
+    <input id='email' type='email' placeholder='E-mail' aria-label='E-mail'>
+    <select id='municipio' aria-label='Município' hidden></select>
+    <input id='senha' type='password' placeholder='Senha (mínimo 6 caracteres)' aria-label='Senha'>
+    <input id='confirma' type='password' placeholder='Confirmar senha' aria-label='Confirmar senha'>
+    <button class='btn' id='btnCadastrar'>Cadastrar</button>
+    <p id='msg' class='erro'></p>
+    <p style='text-align:center'>Já tem cadastro? <a href='/login.html'>Entrar</a></p>
+  </div>
+</main>
+<script src='/js/api.js'></script>
+<script>
+  menu();
+ 
+  // Prefeitura precisa escolher o município
+  $('tipo').onchange = () => {
+    const pref = $('tipo').value === 'prefeituras';
+    $('municipio').hidden = !pref;
+    $('nome').placeholder = pref ? 'Nome da prefeitura' : 'Nome';
+  };
+  api('/municipios').then((ms) =>
+    ms.forEach((m) => $('municipio').add(new Option(m.nome + ' - ' + m.uf, m.id)))
+  );
+ 
+  $('btnCadastrar').onclick = async () => {
+    $('msg').className = 'erro';
+    if ($('senha').value !== $('confirma').value) {
+      $('msg').textContent = 'As senhas não conferem.';
+      return;
+    }
+    const tipo = $('tipo').value;
+    const body = { nome: $('nome').value, email: $('email').value, senha: $('senha').value };
+    if (tipo === 'prefeituras') body.municipio_id = $('municipio').value;
+    try {
+      await api('/' + tipo + '/cadastro', { method: 'POST', body });
+      location.href = '/login.html?cadastro=ok';
+    } catch (e) {
+      $('msg').textContent = e.message;
+    }
+  };
+</script>
+</body>
+</html>
+ 

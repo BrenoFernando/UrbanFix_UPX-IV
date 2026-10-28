@@ -17,7 +17,9 @@
     <select id='municipio'></select>
     <textarea id='descricao' rows='3' placeholder='Descreva o problema'></textarea>
     <input id='endereco' placeholder='Endereço (rua e número)'>
-    <p>Clique no mapa para marcar o local exato:</p>
+    <button class='btn' id='btnLocalizar' type='button'>Localizar no mapa</button>
+    <p id='msgLocal'></p>
+    <p>O mapa localiza o endereço sozinho. Se precisar, clique no mapa ou arraste o pino para ajustar o local exato:</p>
     <div id='mapa'></div>
     <label>Fotos (até 4):</label>
     <input id='fotos' type='file' accept='image/*' multiple>
@@ -31,21 +33,76 @@
   menu();
   const s = getSessao();
   if (!s || s.usuario.tipo !== 'morador') location.href = '/login.html';
-
+ 
   const mapa = L.map('mapa').setView([-23.50, -47.46], 13);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(mapa);
-  let pino = null, lat = null, lng = null;
-  mapa.on('click', (e) => {
-    lat = e.latlng.lat;
-    lng = e.latlng.lng;
-    if (pino) pino.setLatLng(e.latlng); else pino = L.marker(e.latlng).addTo(mapa);
+  let pino = null, lat = null, lng = null, ultimaBusca = '';
+ 
+  // Coloca (ou move) o pino no mapa e guarda as coordenadas
+  function posicionar(ponto, centralizar) {
+    lat = ponto.lat;
+    lng = ponto.lng;
+    if (pino) {
+      pino.setLatLng(ponto);
+    } else {
+      pino = L.marker(ponto, { draggable: true }).addTo(mapa);
+      pino.on('dragend', () => {
+        const p = pino.getLatLng();
+        lat = p.lat;
+        lng = p.lng;
+      });
+    }
+    if (centralizar) mapa.setView(ponto, 17);
+  }
+ 
+  // Procura o endereço digitado (somando a cidade escolhida) no OpenStreetMap
+  async function localizar() {
+    const endereco = $('endereco').value.trim();
+    if (!endereco) return;
+    const opcao = $('municipio').selectedOptions[0];
+    const cidade = opcao ? opcao.textContent.replace(' - ', ', ') : '';
+    const consulta = endereco + ', ' + cidade;
+    if (consulta === ultimaBusca) return;
+    ultimaBusca = consulta;
+ 
+    $('msgLocal').className = '';
+    $('msgLocal').textContent = 'Buscando o endereço...';
+    try {
+      const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&accept-language=pt-BR&q='
+        + encodeURIComponent(consulta);
+      const resp = await fetch(url);
+      const lista = await resp.json();
+      if (!lista.length) {
+        $('msgLocal').className = 'erro';
+        $('msgLocal').textContent = 'Endereço não encontrado. Confira o nome da rua ou clique no mapa para marcar o local.';
+        return;
+      }
+      posicionar(L.latLng(Number(lista[0].lat), Number(lista[0].lon)), true);
+      $('msgLocal').className = 'ok';
+      $('msgLocal').textContent = 'Local encontrado no mapa. Se precisar, arraste o pino para ajustar.';
+    } catch (e) {
+      ultimaBusca = '';
+      $('msgLocal').className = 'erro';
+      $('msgLocal').textContent = 'Não foi possível buscar o endereço agora. Clique no mapa para marcar o local.';
+    }
+  }
+ 
+  mapa.on('click', (e) => posicionar(e.latlng, false));
+  $('endereco').addEventListener('blur', localizar);
+  $('endereco').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); localizar(); }
   });
-
+  $('btnLocalizar').onclick = localizar;
+  $('municipio').onchange = localizar;
+ 
   api('/categorias').then((cs) => cs.forEach((c) => $('categoria').add(new Option(c.nome, c.id))));
   api('/municipios').then((ms) => ms.forEach((m) => $('municipio').add(new Option(m.nome + ' - ' + m.uf, m.id))));
-
+ 
   $('btnEnviar').onclick = async () => {
-    if (lat === null) { $('msg').textContent = 'Clique no mapa para marcar o local.'; return; }
+    if (lat === null) {
+      $('msg').textContent = 'Informe o endereço ou clique no mapa para marcar o local.';
+      return;
+    }
     const f = new FormData();
     f.append('titulo', $('titulo').value);
     f.append('descricao', $('descricao').value);

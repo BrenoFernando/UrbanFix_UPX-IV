@@ -25,7 +25,7 @@
   const mapa = L.map('mapa').setView([-23.50, -47.46], 12);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(mapa);
   let marcadores = [];
-
+ 
   async function carregar() {
     const params = new URLSearchParams();
     if ($('fStatus').value) params.set('status', $('fStatus').value);
@@ -34,14 +34,15 @@
     marcadores.forEach((m) => m.remove());
     marcadores = dados.map((o) =>
       L.marker([Number(o.latitude), Number(o.longitude)]).addTo(mapa).bindPopup(
-        `<b>${esc(o.titulo)}</b><br>${esc(o.categoria)}<br>${ROTULOS[o.status]}<br>${esc(o.endereco)}`
+        `<b>${esc(o.titulo)}</b><br>${esc(o.categoria)}<br>${ROTULOS[o.status]}<br>${esc(o.endereco)}<br><a href='/detalhe.html?id=${o.id}'>Ver detalhes</a>${fotosHtml(o.fotos)}`,
+        { maxWidth: 300 }
       )
     );
     $('lista').innerHTML = dados.map((o) =>
-      `<div class='card'><b>${esc(o.titulo)}</b> <span class='status'>${ROTULOS[o.status]}</span><br>${esc(o.categoria)} — ${esc(o.endereco)}</div>`
+      `<div class='card'><b><a href='/detalhe.html?id=${o.id}'>${esc(o.titulo)}</a></b> <span class='status ${o.status}'>${ROTULOS[o.status]}</span><br>${esc(o.categoria)} — ${esc(o.endereco)}${fotosHtml(o.fotos)}</div>`
     ).join('') || '<p>Nenhuma ocorrência encontrada.</p>';
   }
-
+ 
   Object.entries(ROTULOS).forEach(([valor, texto]) => $('fStatus').add(new Option(texto, valor)));
   api('/categorias').then((cs) => cs.forEach((c) => $('fCategoria').add(new Option(c.nome, c.id))));
   $('fStatus').onchange = carregar;
@@ -50,3 +51,4 @@
 </script>
 </body>
 </html>
+ 

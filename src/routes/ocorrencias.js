@@ -5,27 +5,35 @@ const multer = require('multer');
 const pool = require('../db');
 const { autenticar, apenas } = require('../middleware/auth');
 const router = express.Router();
-
+ 
 const pasta = path.join(__dirname, '..', '..', 'uploads');
 fs.mkdirSync(pasta, { recursive: true });
-
+ 
+const EXTENSOES = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' };
+ 
 const upload = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => cb(null, pasta),
     filename: (req, file, cb) =>
-      cb(null, Date.now() + '-' + Math.round(Math.random() * 1e6) + path.extname(file.originalname).toLowerCase()),
+      cb(null, Date.now() + '-' + Math.round(Math.random() * 1e6) + EXTENSOES[file.mimetype]),
   }),
   limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => cb(null, ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)),
+  fileFilter: (req, file, cb) => cb(null, Boolean(EXTENSOES[file.mimetype])),
 });
-
+ 
+// Trecho de SQL que devolve a lista de fotos de cada ocorrência
+const FOTOS_SQL = `COALESCE(
+  (SELECT json_agg(f.url ORDER BY f.id) FROM ocorrencia_foto f WHERE f.ocorrencia_id = o.id),
+  '[]'::json
+) AS fotos`;
+ 
 // Listar (público), com filtros opcionais: ?municipio_id=1&status=aberta&categoria_id=2
 router.get('/', async (req, res) => {
   const { municipio_id, status, categoria_id } = req.query;
   const r = await pool.query(
     `SELECT o.id, o.titulo, o.descricao, o.endereco, o.latitude, o.longitude, o.status,
             o.prioridade, o.criado_em, o.municipio_id, c.nome AS categoria,
-            (SELECT url FROM ocorrencia_foto f WHERE f.ocorrencia_id = o.id ORDER BY f.id LIMIT 1) AS foto
+            ${FOTOS_SQL}
      FROM ocorrencia o
      JOIN categoria c ON c.id = o.categoria_id
      WHERE ($1::int IS NULL OR o.municipio_id = $1)
@@ -36,18 +44,20 @@ router.get('/', async (req, res) => {
   );
   res.json(r.rows);
 });
-
+ 
 // Ocorrências do morador logado (precisa vir antes da rota /:id)
 router.get('/minhas', autenticar, apenas('morador'), async (req, res) => {
   const r = await pool.query(
-    `SELECT o.id, o.titulo, o.endereco, o.status, o.criado_em, c.nome AS categoria
+    `SELECT o.id, o.titulo, o.descricao, o.endereco, o.status, o.prioridade, o.categoria_id,
+            o.criado_em, c.nome AS categoria,
+            ${FOTOS_SQL}
      FROM ocorrencia o JOIN categoria c ON c.id = o.categoria_id
      WHERE o.morador_id = $1 ORDER BY o.criado_em DESC`,
     [req.usuario.id]
   );
   res.json(r.rows);
 });
-
+ 
 // Detalhes de uma ocorrência, com fotos e histórico
 router.get('/:id', async (req, res) => {
   const o = await pool.query(
@@ -66,7 +76,7 @@ router.get('/:id', async (req, res) => {
   );
   res.json({ ...o.rows[0], fotos: fotos.rows.map((f) => f.url), historico: hist.rows });
 });
-
+ 
 // Registrar ocorrência (morador)
 router.post('/', autenticar, apenas('morador'), upload.array('fotos', 4), async (req, res) => {
   const { titulo, descricao, endereco, latitude, longitude, categoria_id, municipio_id } = req.body;
@@ -88,24 +98,28 @@ router.post('/', autenticar, apenas('morador'), upload.array('fotos', 4), async 
   );
   res.status(201).json({ id });
 });
-
+ 
 // Editar (só o autor, e só enquanto estiver aberta)
 router.put('/:id', autenticar, apenas('morador'), async (req, res) => {
   const { titulo, descricao, endereco, categoria_id } = req.body;
+  const limpar = (v) => (v === undefined || v === null ? null : String(v).trim());
+  if ((titulo !== undefined && !limpar(titulo)) || (endereco !== undefined && !limpar(endereco))) {
+    return res.status(400).json({ erro: 'Título e endereço não podem ficar vazios' });
+  }
   const r = await pool.query(
     `UPDATE ocorrencia
      SET titulo = COALESCE($1, titulo), descricao = COALESCE($2, descricao),
          endereco = COALESCE($3, endereco), categoria_id = COALESCE($4, categoria_id),
          atualizado_em = NOW()
      WHERE id = $5 AND morador_id = $6 AND status = 'aberta' RETURNING id`,
-    [titulo || null, descricao || null, endereco || null, categoria_id || null, req.params.id, req.usuario.id]
+    [limpar(titulo), limpar(descricao), limpar(endereco), categoria_id || null, req.params.id, req.usuario.id]
   );
   if (!r.rows[0]) {
     return res.status(403).json({ erro: 'Você só pode editar ocorrências suas que ainda estão abertas' });
   }
   res.json({ ok: true });
 });
-
+ 
 // Cancelar (só o autor)
 router.patch('/:id/cancelar', autenticar, apenas('morador'), async (req, res) => {
   const atual = await pool.query(
@@ -123,7 +137,7 @@ router.patch('/:id/cancelar', autenticar, apenas('morador'), async (req, res) =>
   );
   res.json({ ok: true });
 });
-
+ 
 // Atualizar status e prioridade (só a prefeitura do mesmo município)
 router.patch('/:id/status', autenticar, apenas('prefeitura'), async (req, res) => {
   const { status, prioridade, comentario } = req.body;
@@ -152,5 +166,6 @@ router.patch('/:id/status', autenticar, apenas('prefeitura'), async (req, res) =
   );
   res.json({ ok: true });
 });
-
+ 
 module.exports = router;
+ 

@@ -11,36 +11,25 @@
 <main>
   <div class='card'>
     <h2>Entrar</h2>
-    <select id='tipo'>
+    <select id='tipo' aria-label='Tipo de conta'>
       <option value='moradores'>Sou morador</option>
       <option value='prefeituras'>Sou da prefeitura</option>
     </select>
-    <input id='email' type='email' placeholder='E-mail'>
-    <input id='senha' type='password' placeholder='Senha'>
+    <input id='email' type='email' placeholder='E-mail' aria-label='E-mail'>
+    <input id='senha' type='password' placeholder='Senha' aria-label='Senha'>
     <button class='btn' id='btnEntrar'>Entrar</button>
     <p id='msg' class='erro'></p>
-  </div>
-  <div class='card'>
-    <h2>Primeiro acesso? Cadastre-se como morador</h2>
-    <input id='cNome' placeholder='Nome'>
-    <input id='cEmail' type='email' placeholder='E-mail'>
-    <input id='cSenha' type='password' placeholder='Senha (mínimo 6 caracteres)'>
-    <button class='btn' id='btnCadastrar'>Cadastrar</button>
-    <p id='msg2'></p>
-  </div>
-  <div class='card'>
-    <h2>Cadastro da prefeitura</h2>
-    <input id='pNome' placeholder='Nome da prefeitura'>
-    <input id='pEmail' type='email' placeholder='E-mail'>
-    <input id='pSenha' type='password' placeholder='Senha (mínimo 6 caracteres)'>
-    <select id='pMunicipio'></select>
-    <button class='btn' id='btnCadPref'>Cadastrar prefeitura</button>
-    <p id='msg3'></p>
+    <p style='text-align:center'>Não tem cadastro? <a href='/cadastro.html'>Cadastre aqui</a></p>
   </div>
 </main>
 <script src='/js/api.js'></script>
 <script>
   menu();
+ 
+  if (new URLSearchParams(location.search).get('cadastro') === 'ok') {
+    $('msg').className = 'ok';
+    $('msg').textContent = 'Cadastro feito! Agora é só entrar.';
+  }
  
   $('btnEntrar').onclick = async () => {
     try {
@@ -51,46 +40,13 @@
       salvarSessao(s);
       location.href = s.usuario.tipo === 'prefeitura' ? '/painel.html' : '/';
     } catch (e) {
+      $('msg').className = 'erro';
       $('msg').textContent = e.message;
     }
   };
  
-  $('btnCadastrar').onclick = async () => {
-    try {
-      await api('/moradores/cadastro', {
-        method: 'POST',
-        body: { nome: $('cNome').value, email: $('cEmail').value, senha: $('cSenha').value },
-      });
-      $('msg2').className = 'ok';
-      $('msg2').textContent = 'Cadastro feito! Agora é só entrar no primeiro quadro.';
-    } catch (e) {
-      $('msg2').className = 'erro';
-      $('msg2').textContent = e.message;
-    }
-  };
- 
-  api('/municipios').then((ms) =>
-    ms.forEach((m) => $('pMunicipio').add(new Option(m.nome + ' - ' + m.uf, m.id)))
-  );
- 
-  $('btnCadPref').onclick = async () => {
-    try {
-      await api('/prefeituras/cadastro', {
-        method: 'POST',
-        body: {
-          nome: $('pNome').value,
-          email: $('pEmail').value,
-          senha: $('pSenha').value,
-          municipio_id: $('pMunicipio').value,
-        },
-      });
-      $('msg3').className = 'ok';
-      $('msg3').textContent = 'Prefeitura cadastrada! Agora entre no primeiro quadro, escolhendo Sou da prefeitura.';
-    } catch (e) {
-      $('msg3').className = 'erro';
-      $('msg3').textContent = e.message;
-    }
-  };
+  $('senha').onkeydown = (e) => { if (e.key === 'Enter') $('btnEntrar').click(); };
 </script>
 </body>
 </html>
+ 
